@@ -48,22 +48,31 @@ export const summarizeHandler: EventHandler = {
     });
 
     // Send to worker - worker handles privacy check and database operations
-    const response = await workerHttpRequest('/api/sessions/summarize', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contentSessionId: sessionId,
-        last_assistant_message: lastAssistantMessage
-      }),
-      timeoutMs: SUMMARIZE_TIMEOUT_MS
-    });
+    try {
+      const response = await workerHttpRequest('/api/sessions/summarize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contentSessionId: sessionId,
+          last_assistant_message: lastAssistantMessage
+        }),
+        timeoutMs: SUMMARIZE_TIMEOUT_MS
+      });
 
-    if (!response.ok) {
-      // Return standard response even on failure (matches original behavior)
-      return { continue: true, suppressOutput: true };
+      if (!response.ok) {
+        // Return standard response even on failure (matches original behavior)
+        return { continue: true, suppressOutput: true };
+      }
+
+      logger.debug('HOOK', 'Summary request sent successfully');
+    } catch (error) {
+      // Worker unreachable / fetch rejected — skip summary gracefully (matches
+      // the other handlers, which all tolerate a failed worker round-trip).
+      logger.warn('HOOK', 'Summary request fetch error, skipping', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return { continue: true, suppressOutput: true, exitCode: HOOK_EXIT_CODES.SUCCESS };
     }
-
-    logger.debug('HOOK', 'Summary request sent successfully');
 
     return { continue: true, suppressOutput: true };
   }

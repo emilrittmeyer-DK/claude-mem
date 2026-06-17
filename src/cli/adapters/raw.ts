@@ -3,7 +3,9 @@ import type { PlatformAdapter, NormalizedHookInput, HookResult } from '../types.
 // Raw adapter passes through with minimal transformation - useful for testing
 export const rawAdapter: PlatformAdapter = {
   normalizeInput(raw) {
-    const r = raw as any;
+    // Tolerate missing stdin (e.g. SessionStart sends none) like the other
+    // adapters — unknown platforms (Codex, ...) route here.
+    const r = (raw ?? {}) as any;
     return {
       sessionId: r.sessionId ?? r.session_id ?? 'unknown',
       cwd: r.cwd ?? process.cwd(),

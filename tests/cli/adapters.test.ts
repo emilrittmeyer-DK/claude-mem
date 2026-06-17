@@ -336,13 +336,15 @@ describe('rawAdapter', () => {
     expect(rawAdapter.formatOutput(result)).toBe(result);
   });
 
-  // CHARACTERIZATION TEST (documents a known gap, not desired behavior):
-  // Unlike the other adapters, rawAdapter does not guard against null/undefined
-  // input (`const r = raw as any`). Since unknown platforms (e.g. Codex) route
-  // to rawAdapter and SessionStart hooks receive no stdin, this can throw.
-  // Flagged for a one-line hardening fix (`raw ?? {}`) pending approval.
-  it('currently throws on null/undefined input (KNOWN GAP — see comment)', () => {
-    expect(() => rawAdapter.normalizeInput(undefined)).toThrow();
-    expect(() => rawAdapter.normalizeInput(null)).toThrow();
+  // rawAdapter now guards against missing input (`raw ?? {}`), like the other
+  // adapters — important because unknown platforms (Codex, ...) route here and
+  // SessionStart hooks send no stdin.
+  it('handles null/undefined input safely', () => {
+    for (const input of [undefined, null]) {
+      const result = rawAdapter.normalizeInput(input as any);
+      expect(result.sessionId).toBe('unknown');
+      expect(result.cwd).toBe(process.cwd());
+      expect(result.toolName).toBeUndefined();
+    }
   });
 });

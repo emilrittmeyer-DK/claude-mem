@@ -304,11 +304,9 @@ describe('summarizeHandler', () => {
     expect(result).toEqual({ continue: true, suppressOutput: true });
   });
 
-  // KNOWN GAP (skipped, not codifying the bug): unlike file-edit/observation/
-  // session-complete, summarize.ts does NOT wrap the worker POST in try/catch,
-  // so a fetch rejection propagates as a thrown error instead of being handled
-  // gracefully. Flagged for a hardening fix (wrap the POST) pending approval.
-  it.skip('SHOULD handle a fetch rejection gracefully (currently throws)', async () => {
+  // summarize.ts now wraps the worker POST in try/catch, so a fetch rejection
+  // is handled gracefully like the other handlers.
+  it('handles a fetch rejection gracefully', async () => {
     installFetchThatThrows();
     extractBehavior = { value: 'work' };
     const result = await summarizeHandler.execute({ sessionId: 's', cwd: '/w', transcriptPath: '/t.jsonl' });
