@@ -151,6 +151,15 @@ describe('cursorAdapter.normalizeInput', () => {
     expect(result.toolResponse).toEqual({ ok: true });
   });
 
+  it('uses result_json (not tool_response) for the tool response — locks the documented contract', () => {
+    const result = cursorAdapter.normalizeInput({
+      tool_name: 'Read',
+      result_json: { fromResultJson: true },
+      tool_response: { fromToolResponse: true },
+    });
+    expect(result.toolResponse).toEqual({ fromResultJson: true });
+  });
+
   it('passes through file edit fields and never sets a transcript path', () => {
     const result = cursorAdapter.normalizeInput({
       file_path: '/src/a.ts',
@@ -229,6 +238,34 @@ describe('geminiCliAdapter.normalizeInput', () => {
     expect(result.toolName).toBe('GeminiNotification');
     expect(result.toolInput).toEqual({ notification_type: 'ToolPermission', message: 'allow?' });
     expect(result.toolResponse).toEqual({ details: { tool: 'Bash' } });
+  });
+
+  it('preserves an explicit tool_name/tool_response over the AfterAgent synthesized defaults', () => {
+    const result = geminiCliAdapter.normalizeInput({
+      hook_event_name: 'AfterAgent',
+      prompt_response: 'did x',
+      tool_name: 'CustomTool',
+      tool_response: { kept: true },
+    });
+    expect(result.toolName).toBe('CustomTool');
+    expect(result.toolResponse).toEqual({ kept: true });
+  });
+
+  it('collects reason / trigger / mcp_context / original_request_name metadata', () => {
+    const result = geminiCliAdapter.normalizeInput({
+      hook_event_name: 'SessionEnd',
+      reason: 'logout',
+      trigger: 'manual',
+      mcp_context: { server: 'x' },
+      original_request_name: 'orig',
+    }) as any;
+    expect(result.metadata).toMatchObject({
+      reason: 'logout',
+      trigger: 'manual',
+      mcp_context: { server: 'x' },
+      original_request_name: 'orig',
+      hook_event_name: 'SessionEnd',
+    });
   });
 
   it('collects platform metadata and omits it entirely when empty', () => {

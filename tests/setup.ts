@@ -13,6 +13,13 @@
  * `afterAll` (see tests/hooks/context-reinjection-guard.test.ts).
  */
 import { beforeEach, afterEach } from 'bun:test';
+import * as realLoggerModule from '../src/utils/logger.js';
+
+// Capture the REAL logger module once, at preload time — before any test file
+// has a chance to mock.module(...) it. Test files that mock the logger (and
+// would otherwise leak an incomplete stub across the shared module registry)
+// can restore from this snapshot in their own afterAll.
+(globalThis as any).__CMEM_REAL_LOGGER__ = { ...realLoggerModule };
 
 let envSnapshot: Record<string, string | undefined> = {};
 let cwdSnapshot = '';
