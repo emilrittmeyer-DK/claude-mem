@@ -7,9 +7,27 @@
  * - SessionManager.getSession returns undefined for uninitialized sessions
  * - SessionManager.getSession returns session after initialization
  */
-import { describe, it, expect, beforeEach, afterEach, spyOn, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, afterAll, spyOn, mock } from 'bun:test';
 import { homedir } from 'os';
 import { join } from 'path';
+
+// Capture the REAL implementations BEFORE mocking so they can be restored in
+// afterAll. Bun's mock.module is global and persists across files; without
+// restoration these mocks leak and poison other suites (e.g. project-filter,
+// settings-defaults-manager). mock.restore() does NOT undo mock.module, so we
+// must re-register the real modules explicitly.
+import * as realSettingsDefaultsManager from '../../src/shared/SettingsDefaultsManager.js';
+import * as realWorkerUtils from '../../src/shared/worker-utils.js';
+import * as realProjectName from '../../src/utils/project-name.js';
+import * as realProjectFilter from '../../src/utils/project-filter.js';
+
+// Snapshot the real exports into plain objects NOW, while the module bindings
+// are still real. Spreading these namespaces lazily inside afterAll would copy
+// the mocked bindings instead (Bun's live bindings repoint after mock.module).
+const realSettingsSnapshot = { ...realSettingsDefaultsManager };
+const realWorkerUtilsSnapshot = { ...realWorkerUtils };
+const realProjectNameSnapshot = { ...realProjectName };
+const realProjectFilterSnapshot = { ...realProjectFilter };
 
 // Mock modules that cause import chain issues - MUST be before handler imports
 // paths.ts calls SettingsDefaultsManager.get() at module load time
@@ -64,6 +82,15 @@ beforeEach(() => {
 
 afterEach(() => {
   loggerSpies.forEach(spy => spy.mockRestore());
+});
+
+// Restore the real module implementations so these global mocks do not leak
+// into other test files (Bun shares the module registry across the run).
+afterAll(() => {
+  mock.module('../../src/shared/SettingsDefaultsManager.js', () => realSettingsSnapshot);
+  mock.module('../../src/shared/worker-utils.js', () => realWorkerUtilsSnapshot);
+  mock.module('../../src/utils/project-name.js', () => realProjectNameSnapshot);
+  mock.module('../../src/utils/project-filter.js', () => realProjectFilterSnapshot);
 });
 
 describe('Context Re-Injection Guard (#1079)', () => {
