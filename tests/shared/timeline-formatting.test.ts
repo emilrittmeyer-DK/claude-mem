@@ -1,4 +1,4 @@
-import { describe, it, expect, mock, afterEach } from 'bun:test';
+import { describe, it, expect, mock, afterEach, afterAll } from 'bun:test';
 
 // Mock logger BEFORE imports (required pattern)
 mock.module('../../src/utils/logger.js', () => ({
@@ -16,6 +16,14 @@ import { extractFirstFile, groupByDate } from '../../src/shared/timeline-formatt
 
 afterEach(() => {
   mock.restore();
+});
+
+// Restore the real logger (captured in tests/setup.ts before any mock) so this
+// file's incomplete logger stub does not leak into later suites. mock.restore()
+// does not undo mock.module, so we must re-register the real module.
+afterAll(() => {
+  const realLogger = (globalThis as any).__CMEM_REAL_LOGGER__;
+  if (realLogger) mock.module('../../src/utils/logger.js', () => realLogger);
 });
 
 describe('extractFirstFile', () => {

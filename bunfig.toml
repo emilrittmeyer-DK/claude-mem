@@ -1,0 +1,5 @@
+[test]
+# Global test isolation harness — snapshots/restores process.env and cwd
+# around every test so suites that mutate process-global state cannot leak
+# into one another. See tests/setup.ts for details.
+preload = ["./tests/setup.ts"]
