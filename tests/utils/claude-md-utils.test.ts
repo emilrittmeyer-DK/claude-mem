@@ -1,4 +1,4 @@
-import { describe, it, expect, mock, afterEach, beforeEach } from 'bun:test';
+import { describe, it, expect, mock, afterEach, beforeEach, afterAll } from 'bun:test';
 import { mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from 'fs';
 import path, { join } from 'path';
 import { tmpdir } from 'os';
@@ -13,6 +13,13 @@ mock.module('../../src/utils/logger.js', () => ({
     formatTool: (toolName: string, toolInput?: any) => toolInput ? `${toolName}(...)` : toolName,
   },
 }));
+
+// Restore the real logger (captured in tests/setup.ts) after this file so its
+// incomplete logger stub cannot leak into later suites.
+afterAll(() => {
+  const realLogger = (globalThis as any).__CMEM_REAL_LOGGER__;
+  if (realLogger) mock.module('../../src/utils/logger.js', () => realLogger);
+});
 
 // Mock worker-utils to delegate workerHttpRequest to global.fetch
 mock.module('../../src/shared/worker-utils.js', () => ({

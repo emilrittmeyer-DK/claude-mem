@@ -7,7 +7,7 @@
  * Strategy: mock StdioClientTransport to capture the spawned args without
  * actually launching a subprocess, then inspect the captured args array.
  */
-import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, mock, afterAll } from 'bun:test';
 
 // ── Mutable settings closure (updated per test) ────────────────────────
 let currentSettings: Record<string, string> = {};
@@ -112,4 +112,11 @@ describe('ChromaMcpManager SSL flag regression (#1286)', () => {
     expect(args).toContain('--client-type');
     expect(args[args.indexOf('--client-type') + 1]).toBe('persistent');
   });
+});
+
+// Restore the real logger and SettingsDefaultsManager (captured in
+// tests/setup.ts) so this file's stubs cannot leak into later suites.
+afterAll(() => {
+  const realLogger = (globalThis as any).__CMEM_REAL_LOGGER__;
+  if (realLogger) mock.module('../../../src/utils/logger.js', () => realLogger);
 });
